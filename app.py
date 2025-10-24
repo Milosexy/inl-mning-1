@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, redirect, url_for, flash
 import mysql.connector
 from mysql.connector import Error
 import os
@@ -25,7 +25,15 @@ def get_db_connection():
 
 @app.route('/')
 def index():
+    if 'username' in session:
+        return render_template('home.html', username=session['username'])
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    # Rensa sessionen för att logga ut användaren
+    session.clear()
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -48,16 +56,14 @@ def login():
             user = cursor.fetchone()
             
        
-            
-            # Kontrollera om användaren fanns i databasen och lösenordet är korrekt.
-            # Om lösenordet är korrekt så sätt sessionsvariabler och skicka tillbaka en hälsning med användarens namn.
-            # Om lösenordet inte är korrekt skicka tillbaka ett felmeddelande med http-status 401.
             if user and user['password'] == password: 
                 session["username"] = user['username']
-                return f'Inloggning lyckades! Välkommen {user["username"]}!'
+                flash('Inloggning lyckades! Välkommen!', 'success')
+                return redirect(url_for('index'))
             else:
                 # Inloggning misslyckades, skicka http status 401 (Unauthorized)
-                return ('Ogiltigt användarnamn eller lösenord', 401)
+                flash('Ogiltigt användarnamn eller lösenord', 'error')
+                return redirect(url_for('index'))
 
         except Error as e:
             print(f"Databasfel: {e}")
